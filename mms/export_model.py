@@ -39,6 +39,8 @@ MODEL_ARCHIVE_VERSION = 0.1
 MODEL_SERVER_VERSION = 0.1
 MANIFEST_FILE_NAME = 'MANIFEST.json'
 MXNET_TYPE = 'mxnet'
+MXNET_ATTRS = 'attrs'
+MXNET_VERSION = 'mxnet_version'
 ONNX_TYPE = 'onnx'
 
 def validate_signature(model_path):
@@ -180,7 +182,15 @@ def generate_manifest(symbol_file, params_file, service_file, signature_file, mo
     manifest["Model"]["Description"] = model_name
     manifest["Model"]["Model-Name"] = model_name
     manifest["Model"]["Model-Format"] = "MXNet-Symbolic"
-    manifest["Engine"]  = {"MXNet":mx.__version__}
+    mxnet_version = mx.__version__
+
+    with open(symbol_file) as f:
+        symbol_json = json.load(f)
+
+    if MXNET_ATTRS in symbol_json:
+        if MXNET_VERSION in symbol_json[MXNET_ATTRS]:
+            mxnet_version = symbol_json[MXNET_ATTRS][MXNET_VERSION]
+    manifest["Engine"]  = {"MXNet": mxnet_version}
     
     return manifest
     
@@ -217,7 +227,7 @@ def export_model(model_name, model_path, service_file=None):
     symbol_file = validate_symbol(model_path)
     
     params_file = validate_params(model_path)
-    
+
     manifest = generate_manifest(symbol_file, params_file, service_file, signature_file, model_name)
     manifest_file = os.path.join(model_path, MANIFEST_FILE_NAME)
     with open(manifest_file, 'w') as m:
